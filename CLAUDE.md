@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev                    # next dev (Cloudflare bindings via initOpenNextCloudflareForDev)
 npm run lint                   # eslint (next/core-web-vitals + next/typescript)
-npm run build                  # next build only — does NOT produce the deployable Worker
+npm run build                  # OpenNext build, including .open-next/assets and the deployable Worker
+npm run build:next             # Next.js-only build, invoked internally by OpenNext
 
 npm run db:generate            # drizzle-kit generate from src/db/schema/index.ts
 npm run db:migrate:local       # wrangler d1 migrations apply DB --local
