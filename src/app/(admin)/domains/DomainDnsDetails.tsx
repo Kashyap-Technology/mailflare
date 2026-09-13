@@ -45,7 +45,8 @@ export default function DomainDnsDetails({ domain, dns }: DomainDnsDetailsProps)
 				</section>
 
 				<section className="space-y-3 mt-8">
-					<h2 className="text-sm font-medium text-neutral-900">Email Sending</h2>
+					<h2 className="text-sm font-medium text-neutral-900">Resend sending</h2>
+					<p className="text-sm text-neutral-500">Verify sending DNS in your Resend dashboard. This status reflects the app configuration.</p>
 					<ul className="space-y-2">
 						{dns.sending.map((record, index) => (
 							<li
@@ -63,7 +64,7 @@ export default function DomainDnsDetails({ domain, dns }: DomainDnsDetailsProps)
 								) : (
 									<AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
 								)}
-								{domain.sendingEnabled ? "Email sending is configured" : "No sending DNS records found"}
+								{domain.sendingEnabled ? "Resend sending is configured" : "Resend sending is not configured for this domain"}
 							</li>
 						)}
 					</ul>

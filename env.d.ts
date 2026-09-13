@@ -1,6 +1,8 @@
 interface CloudflareEnv {
 	DB: D1Database;
-	EMAIL: SendEmail;
+	RESEND_API_KEY?: string;
+	RESEND_SENDING_DOMAINS?: string;
+	RESEND_WEBHOOK_SECRET?: string;
 	BUCKET: R2Bucket;
 	INBOUND_QUEUE: Queue<import("./src/lib/email/inbound").InboundQueueMessage>;
 	// The outbound queue also carries webhook retries so that scheduled redelivery needs no extra binding.

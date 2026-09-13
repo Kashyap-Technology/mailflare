@@ -8,7 +8,6 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { TurnstileField } from "@/components/auth/turnstile";
 import {
   getSetupStatus,
@@ -25,12 +24,9 @@ export function RegisterClient() {
     null,
   );
   const [primaryDomain, setPrimaryDomain] = useState<string | null>(null);
-  const [primaryDomainSendingRequested, setPrimaryDomainSendingRequested] = useState<boolean | null>(null);
   const [setupDomain, setSetupDomain] = useState<string | null>(null);
   const [domainCheck, setDomainCheck] = useState<DomainPreflight | null>(null);
   const [domainChecking, setDomainChecking] = useState(false);
-  const [enableSending, setEnableSending] = useState(false);
-  const [setupEnableSending, setSetupEnableSending] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [checks, setChecks] = useState<SetupRequirementCheck[]>([]);
   const [databaseMigrated, setDatabaseMigrated] = useState(false);
@@ -61,7 +57,6 @@ export function RegisterClient() {
       setHasAdminAccount(data.hasAdminAccount);
       setHasPrimaryDomain(data.hasPrimaryDomain);
       setPrimaryDomain(data.primaryDomain?.hostname ?? null);
-      setPrimaryDomainSendingRequested(data.primaryDomain?.sendingRequested ?? null);
       setPreparationComplete(true);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Installation preparation failed");
@@ -89,7 +84,6 @@ export function RegisterClient() {
       return;
     }
     setSetupDomain(data.domain.hostname);
-    setSetupEnableSending(usedCachedCheck ? enableSending : true);
     setStep(3);
   }
 
@@ -103,13 +97,11 @@ export function RegisterClient() {
     setDomainChecking(false);
     if (!ok || !data.domain) {
       setDomainCheck(null);
-      setEnableSending(false);
       setError(typeof data.error === "string" ? data.error : "Domain check failed");
       return;
     }
 
     setDomainCheck(data.domain);
-    setEnableSending(true);
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -128,9 +120,7 @@ export function RegisterClient() {
     const { ok, data } = await submitRegistration(form, {
       firstRun: true,
       domain,
-      enableSending: setupDomain
-        ? setupEnableSending
-        : primaryDomainSendingRequested ?? undefined,
+      enableSending: false,
     });
     setLoading(false);
     if (!ok) {
@@ -265,7 +255,6 @@ export function RegisterClient() {
               onChange={(event) => {
                 if (domainCheck?.hostname !== event.currentTarget.value.toLowerCase().trim()) {
                   setDomainCheck(null);
-                  setEnableSending(false);
                 }
               }}
             />
@@ -273,26 +262,10 @@ export function RegisterClient() {
               The domain must already be a Cloudflare zone on this account.
             </p>
           </div>
-          <div className="flex items-center justify-between gap-4 rounded-2xl bg-neutral-50 px-4 py-3">
-            <div>
-              <Label htmlFor="setup-enable-sending">Enable sending</Label>
-              <p className="mt-1 text-xs leading-5 text-neutral-500">
-                {domainChecking
-                  ? "Checking Cloudflare access..."
-                  : domainCheck
-                    ? enableSending
-                      ? "Required to send email."
-                      : "Receive-only mode."
-                    : "Enter the domain and leave the field to verify it."}
-              </p>
-            </div>
-            <Switch
-              id="setup-enable-sending"
-              checked={enableSending}
-              onCheckedChange={setEnableSending}
-              disabled={domainChecking || !domainCheck}
-            />
-          </div>
+          <p className="text-sm text-neutral-500">
+            Outgoing mail uses Resend. After setup, verify your sender domain in
+            Resend and configure sending for this installation.
+          </p>
           {domainCheck && (
             <div className="flex items-center gap-3 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
               <CheckCircle2 className="h-4 w-4" />

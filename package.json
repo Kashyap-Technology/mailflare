@@ -8,6 +8,7 @@
     "build:next": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "deploy": "npm run build && npm run db:migrate:remote && OPEN_NEXT_DEPLOY=true wrangler deploy",
     "deploy:worker": "npm run build && OPEN_NEXT_DEPLOY=true wrangler deploy",
     "deploy:local": "npm run deploy",
@@ -24,7 +25,7 @@
   "cloudflare": {
     "bindings": {
       "CF_TOKEN": {
-        "description": "Runtime Cloudflare API token used by Mailflare onboarding to call the Zones and Email Routing APIs. Cloudflare's deploy/build token is not passed to the app, so create this separately at https://dash.cloudflare.com/profile/api-tokens with `Zone Read`, `Email Routing Edit`, and `Email Routing Rules Write` permissions for the zones you will connect. Add `Email Sending Edit` to enable outbound mail. Paste only the token secret value, without `Bearer`."
+        "description": "Runtime Cloudflare API token used by Mailflare onboarding to call the Zones and Email Routing APIs. Cloudflare's deploy/build token is not passed to the app, so create this separately at https://dash.cloudflare.com/profile/api-tokens with `Zone Read`, `Email Routing Edit`, and `Email Routing Rules Write` permissions for the zones you will connect. Outbound mail uses Resend and does not need Email Sending permissions. Paste only the token secret value, without `Bearer`."
       },
       "TURNSTILE_SECRET_KEY": {
         "description": "Cloudflare Turnstile secret key used to verify login and first-run registration challenges. Pair with NEXT_PUBLIC_TURNSTILE_SITE_KEY at build time."
@@ -49,6 +50,15 @@
       },
       "CF_API_KEY": {
         "description": "Legacy Global API Key auth only. Prefer `CF_TOKEN` for new deployments."
+      },
+      "RESEND_API_KEY": {
+        "description": "Resend API key for outbound mail. Add as a Worker secret. Verify your mailbox sender domains in Resend first."
+      },
+      "RESEND_SENDING_DOMAINS": {
+        "description": "Comma-separated exact sender domains already verified in Resend, for example kashyapadvisors.com. This is a local allowlist, not an automatic DNS verification check."
+      },
+      "RESEND_WEBHOOK_SECRET": {
+        "description": "Signing secret for the Resend email.sent webhook pointing to https://YOUR_APP/api/resend/webhook. Used to match incoming replies to Sent messages."
       }
     }
   },

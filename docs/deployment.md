@@ -8,9 +8,9 @@ Set up Mailflare in three steps:
 
 1. **Deploy the app:** use the Deploy to Cloudflare button, set the app name to `mailflare`, and provide the required `CF_TOKEN`.
 2. **Complete setup:** open the deployed app and follow `/setup` to check the installation and create the first admin account.
-3. **Connect your domain:** add a domain managed by the same Cloudflare account. Mailflare configures email routing and, when available and selected, email sending before helping you create the first mailbox.
+3. **Connect your domain:** add a domain managed by the same Cloudflare account. Mailflare configures incoming email routing before helping you create the first mailbox. Configure outbound mail separately using the [Resend setup guide](resend-setup.md).
 
-The Worker name must remain `mailflare`. Before starting, create the required `CF_TOKEN` with **Zone Read**, **Email Routing Edit**, and **Email Routing Rules Write** permissions for every domain you plan to connect. Add **Email Sending Edit** when Mailflare should send email; it is optional for receive-only domains.
+The Worker name must remain `mailflare`. Before starting, create the required `CF_TOKEN` with **Zone Read**, **Email Routing Edit**, and **Email Routing Rules Write** permissions for every domain you plan to connect. Outbound mail uses Resend and requires no Cloudflare Email Sending permission.
 
 ## Step 1: Deploy mailflare
 
@@ -26,7 +26,7 @@ The Worker name must remain `mailflare`. Before starting, create the required `C
 
 Mailflare requires this runtime value:
 
-- `CF_TOKEN` — a scoped Cloudflare API token with **Zone Read**, **Email Routing Edit**, and **Email Routing Rules Write** access for the domains you will connect. Add **Email Sending Edit** to enable outbound mail. This is separate from the token Cloudflare uses to deploy the app.
+- `CF_TOKEN` — a scoped Cloudflare API token with **Zone Read**, **Email Routing Edit**, and **Email Routing Rules Write** access for the domains you will connect. This is separate from the token Cloudflare uses to deploy the app.
 
 Paste only the token secret into `CF_TOKEN`. Do not include the word `Bearer` and do not use the token ID. The token must belong to the same Cloudflare account as the domains you connect.
 
@@ -42,13 +42,13 @@ The setup page initializes only a new, empty database. It never applies later mi
 ## Step 3: Connect your primary domain and create an account
 
 1. Enter a domain that already uses Cloudflare DNS on the same account as `CF_TOKEN`.
-2. Continue while Mailflare enables Email Routing and configures the required routing and sending DNS.
+2. Continue while Mailflare enables Email Routing and configures the required routing DNS.
 3. Choose the address for your first mailbox and finish setup.
 4. Open the inbox and send a test message to the new address.
 
-To connect more domains later, open **Admin → Domains**, select **New domain**, and enter the hostname. Mailflare configures Email Routing and Email Sending automatically.
+To connect more domains later, open **Admin → Domains**, select **New domain**, and enter the hostname. Mailflare configures Email Routing automatically. Verify sender domains in Resend and configure the Worker using the [Resend setup guide](resend-setup.md).
 
-Your inbox should be ready to send and receive emails
+Your inbox is ready to receive email. Sending is available after Resend configuration.
 
 ---
 

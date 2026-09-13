@@ -1,9 +1,8 @@
+import { isResendSendingDomain } from "@/lib/email/resend";
 import {
-	createSendingSubdomain,
 	enableEmailRouting,
 	findZoneByHostname,
 	getEmailRoutingSettings,
-	listSendingSubdomains,
 } from "@/lib/cloudflare-api";
 import {
 	ensureEmailRoutingCatchAllToWorker,
@@ -29,8 +28,8 @@ export async function provisionDomainOnCloudflare(
 	const enableSending = options?.enableSending ?? true;
 
 	let routingEnabled = false;
-	let sendingEnabled = false;
-	let sendingSubdomainTag: string | null = null;
+	const sendingEnabled = isResendSendingDomain(env, normalized);
+	const sendingSubdomainTag: string | null = null;
 	let routingStatus: string | undefined;
 	const changes: DomainProvisioningChanges = {
 		zoneId: zone.id,
@@ -63,19 +62,7 @@ export async function provisionDomainOnCloudflare(
 		await ensureEmailRoutingCatchAllToWorker(env, zone.id);
 	}
 
-	if (enableSending) {
-		const subs = await listSendingSubdomains(env, zone.id);
-		const existingSub = subs.find((s) => s.name === normalized);
-		if (existingSub) {
-			sendingSubdomainTag = existingSub.tag;
-			sendingEnabled = existingSub.enabled;
-		} else {
-			const created = await createSendingSubdomain(env, zone.id, normalized);
-			sendingSubdomainTag = created.tag;
-			sendingEnabled = created.enabled;
-			changes.createdSendingSubdomainTag = created.tag;
-		}
-	}
+	// Outbound domains are verified in Resend; never provision paid Cloudflare sending.
 
 	return {
 		hostname: normalized,
