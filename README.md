@@ -29,13 +29,13 @@ Thanks to mailflare sponsors. Want to support the project? Drop [@hieuSSR](https
 
 ## How it works
 
-Mailflare runs in your Cloudflare account. Email Routing delivers incoming messages to the app, while Cloudflare's email service handles outgoing messages. Your mail data stays in your own D1 database and attachments are stored in your own R2 bucket.
+Mailflare runs in your Cloudflare account. Email Routing delivers incoming messages to the app, while Resend handles outgoing messages. Your mail data stays in your own D1 database and attachments are stored in your own R2 bucket.
 
 ## How much does it cost?
 
 You can setup Mailflare and receive email for free
 
-A [Paid Worker](https://developers.cloudflare.com/workers/platform/pricing/) plan ($5/month) is required to send email (and it's recommend to have a smooth experience)
+Outbound mail uses [Resend](https://resend.com/pricing), with its own limits and pricing. Cloudflare Email Sending is not required. Configure the sending domain and Worker secrets using the [Resend setup guide](docs/resend-setup.md).
 
 ## Deploy
 
@@ -46,7 +46,7 @@ Getting started takes three steps:
 3. **Connect your domain.** Add a domain managed by the same Cloudflare account. Mailflare configures its email routing and helps you create the first mailbox.
 
 ⚠️ IMPORTANT: **`CF_TOKEN` is required during deployment**. Create a scoped [Cloudflare API token with the following permissions](https://github.com/hieunc229/mailflare/issues/24#issuecomment-5523686105) for the domains you want to connect.
-- All accounts - Email Sending:Edit, DNS Settings:Edit, Email Routing Addresses:Edit
+- All accounts - DNS Settings:Edit, Email Routing Addresses:Edit
 - All zones - DNS Settings:Edit, Email Routing Rules:Edit, Zone Settings:Edit, DNS:Edit
 
 See the [deployment guide](docs/deployment.md) for required permissions, manual deployment, backups, and updates.

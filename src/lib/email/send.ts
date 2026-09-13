@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { messages, outboundJobs } from "@/db/schema";
 import { newId } from "@/lib/ids";
@@ -10,6 +10,7 @@ import { getEmailAddressList, joinEmailAddressList, splitEmailAddressList } from
 import { formatMessageIdHeader, normalizeMessageId, parseMessageIdList } from "@/lib/email/threading";
 import { createAuditLog } from "@/lib/mailboxes/audit";
 import { loadMessageAttachmentContents, storeMessageAttachments, validateAttachments } from "@/lib/email/attachments";
+import { assertResendSender, sendResendEmail } from "@/lib/email/resend";
 import type { AttachmentContent } from "@/lib/email/attachment-types";
 
 export type SendEmailInput = {
@@ -70,6 +71,7 @@ export async function sendEmail(
 ): Promise<{ messageId: string; scheduled?: boolean }> {
 	const db = getDb(env);
 	const sender = await getAuthorizedSenderAddress(env, input);
+	assertResendSender(env, sender.fromAddr);
 	const attachments = input.attachments ?? [];
 	validateAttachments(attachments);
 
@@ -169,41 +171,25 @@ async function deliverEmail(env: CloudflareEnv, delivery: PreparedDelivery): Pro
 	const db = getDb(env);
 	const toAddr = joinEmailAddressList(to);
 	try {
-		const response = await env.EMAIL.send({
-			from,
-			to,
-			...(cc.length ? { cc } : {}),
-			...(bcc.length ? { bcc } : {}),
+		const response = await sendResendEmail(env, {
+			from, to, cc, bcc,
 			subject: input.subject,
-			headers: Object.keys(headers).length ? headers : undefined,
+			headers,
 			html: input.html,
 			text: input.text,
-			attachments: attachments.map((attachment) =>
-				attachment.disposition === "inline" && attachment.contentId
-					? {
-							filename: attachment.filename,
-							type: attachment.type,
-							content: attachment.content,
-							disposition: "inline" as const,
-							contentId: attachment.contentId,
-						}
-					: {
-							filename: attachment.filename,
-							type: attachment.type,
-							content: attachment.content,
-							disposition: "attachment" as const,
-						},
-			),
+			attachments,
+			messageId,
 		});
 
-		// A fresh message starts its own conversation; Cloudflare's Message-ID is what
-		// any reply will name in In-Reply-To, so key the thread by it.
+		// Keep the thread stable while the signed Resend webhook fills in the
+		// RFC Message-ID. Never overwrite a webhook that arrived during send.
+
 		await db
 			.update(messages)
 			.set({
 				status: "sent",
-				providerMessageId: response.messageId,
-				threadId: input.threadId ?? normalizeMessageId(response.messageId) ?? messageId,
+				providerMessageId: sql`coalesce(${messages.providerMessageId}, ${response.messageId})`,
+				threadId: input.threadId ?? messageId,
 			})
 			.where(eq(messages.id, messageId));
 		await db.update(outboundJobs).set({ status: "sent", updatedAt: new Date() }).where(eq(outboundJobs.id, jobId));
@@ -211,6 +197,7 @@ async function deliverEmail(env: CloudflareEnv, delivery: PreparedDelivery): Pro
 		await dispatchWebhooks(env, input.userId, "message.outbound", {
 			messageId,
 			providerMessageId: response.messageId,
+			resendEmailId: response.id,
 			to: toAddr,
 			cc: cc.length ? joinEmailAddressList(cc) : undefined,
 		});

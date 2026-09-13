@@ -1,6 +1,11 @@
 # Preferred: scoped API token.
 # This is an app runtime token, not the Cloudflare deploy/build token.
 CF_TOKEN=your_api_token_with_zone_email_permissions
+# Outbound mail uses Resend; verify these exact sender domains in Resend first.
+RESEND_API_KEY=re_your_resend_api_key
+RESEND_SENDING_DOMAINS=example.com
+# Configure the email.sent webhook at https://YOUR_APP/api/resend/webhook.
+RESEND_WEBHOOK_SECRET=whsec_your_resend_webhook_signing_secret
 # Optional: lets the admin dashboard trigger the GitHub update workflow.
 # GITHUB_UPDATE_TOKEN=github_pat_with_actions_write
 # GITHUB_UPDATE_REPO=owner/repo

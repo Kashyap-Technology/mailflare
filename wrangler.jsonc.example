@@ -37,12 +37,6 @@
 		"enabled": true,
 	},
 	"upload_source_maps": true,
-	"send_email": [
-		{
-			"name": "EMAIL",
-			"remote": true,
-		},
-	],
 	"d1_databases": [
 		{
 			"binding": "DB",

@@ -55,10 +55,7 @@ test("fresh bootstrap schema accepts the current Drizzle mailbox and license ins
 import sqlite3, sys
 sql = sys.stdin.read()
 db = sqlite3.connect(":memory:")
-for stmt in sql.split(";"):
-    s = stmt.strip()
-    if s:
-        db.execute(s)
+db.executescript(sql)
 db.execute("INSERT INTO users (id,email,password_hash,name,created_at) VALUES ('u','a@b.c','x','n',1)")
 db.execute("INSERT INTO domains (id,user_id,hostname,zone_id,created_at) VALUES ('d','u','ex.com','z',1)")
 db.execute("""

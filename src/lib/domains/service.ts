@@ -7,16 +7,13 @@ import {
 	disableEmailRouting,
 	getEmailRoutingDns,
 	getEmailRoutingSettings,
-	getSendingSubdomainDns,
-	deleteSendingSubdomain,
-	listSendingSubdomains,
 	type CfDnsRecord,
 } from "@/lib/cloudflare-api";
 import { deleteEmailRoutingRulesForDomain } from "@/lib/domains/cloudflare-cleanup";
 import { provisionDomainOnCloudflare } from "@/lib/domains/provision";
 import { rollbackDomainProvisioning } from "@/lib/domains/rollback";
 import type { DomainProvisioningChanges } from "@/lib/domains/types";
-import { findSendingSubdomain } from "@/lib/domains/sending-status";
+import { isResendSendingDomain } from "@/lib/email/resend";
 
 export type DomainDnsView = {
 	routing: { records: CfDnsRecord[]; missing: CfDnsRecord[]; status?: string };
@@ -26,7 +23,8 @@ export type DomainDnsView = {
 
 export async function listUserDomains(env: CloudflareEnv, userId: string) {
 	const db = getDb(env);
-	return db.select().from(domains).where(eq(domains.userId, userId));
+	const rows = await db.select().from(domains).where(eq(domains.userId, userId));
+	return rows.map((domain) => ({ ...domain, sendingEnabled: isResendSendingDomain(env, domain.hostname) }));
 }
 
 export async function addDomainForUser(
@@ -110,25 +108,18 @@ export async function getDomainDns(
 	env: CloudflareEnv,
 	domain: typeof domains.$inferSelect,
 ): Promise<DomainDnsView> {
-	const shouldInspectSending = domain.sendingRequested;
-	const [routingDns, routingSettings, sendingSubdomains] = await Promise.all([
+	const [routingDns, routingSettings] = await Promise.all([
 		getEmailRoutingDns(env, domain.zoneId),
 		getEmailRoutingSettings(env, domain.zoneId),
-		shouldInspectSending ? listSendingSubdomains(env, domain.zoneId) : [],
 	]);
-	const sendingSubdomain = findSendingSubdomain(domain.hostname, sendingSubdomains);
-	let sending: CfDnsRecord[] = [];
-	if (sendingSubdomain?.tag) {
-		sending = await getSendingSubdomainDns(env, domain.zoneId, sendingSubdomain.tag);
-	}
 	return {
 		routing: {
 			records: routingDns.records,
 			missing: routingDns.missing,
 			status: routingSettings.status,
 		},
-		sending,
-		sendingEnabled: sendingSubdomain?.enabled ?? false,
+		sending: [],
+		sendingEnabled: isResendSendingDomain(env, domain.hostname),
 	};
 }
 
@@ -159,13 +150,6 @@ export async function removeDomainForUser(
 		}
 	}
 
-	if (domain.sendingSubdomainTag) {
-		try {
-			await deleteSendingSubdomain(env, domain.zoneId, domain.sendingSubdomainTag);
-		} catch (err) {
-			console.warn("deleteSendingSubdomain", err);
-		}
-	}
 
 	await db.delete(domains).where(eq(domains.id, domainId));
 }

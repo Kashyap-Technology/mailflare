@@ -1,12 +1,13 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { domains, mailboxes, users } from "@/db/schema";
 import { formatEmailAddress } from "@/lib/email/address";
 import type { SystemMailInput } from "@/lib/email/system-mail-types";
+import { getResendSendingDomains, sendResendEmail } from "@/lib/email/resend";
 
 /**
  * Mail the application sends on its own behalf (password resets). It goes
- * straight through the send binding: no Sent copy, no contact upsert, no
+ * straight through Resend: no Sent copy, no contact upsert, no
  * webhooks, and the auto-generated headers mail systems expect.
  *
  * The From address is the primary mailbox of the first administrator on a
@@ -17,7 +18,7 @@ export async function sendSystemEmail(env: CloudflareEnv, input: SystemMailInput
 	const sender = await pickSystemSender(env);
 	if (!sender) return false;
 
-	await env.EMAIL.send({
+	await sendResendEmail(env, {
 		from: formatEmailAddress(sender.address, sender.name),
 		to: input.to,
 		subject: input.subject,
@@ -32,6 +33,8 @@ export async function sendSystemEmail(env: CloudflareEnv, input: SystemMailInput
 }
 
 export async function pickSystemSender(env: CloudflareEnv): Promise<{ address: string; name: string } | null> {
+	const sendingDomains = getResendSendingDomains(env);
+	if (!sendingDomains.length) return null;
 	const db = getDb(env);
 	const rows = await db
 		.select({
@@ -43,7 +46,7 @@ export async function pickSystemSender(env: CloudflareEnv): Promise<{ address: s
 		.from(mailboxes)
 		.innerJoin(domains, eq(mailboxes.domainId, domains.id))
 		.innerJoin(users, eq(mailboxes.userId, users.id))
-		.where(and(eq(domains.sendingEnabled, true), eq(mailboxes.disabled, false), eq(users.disabled, false)))
+		.where(and(inArray(domains.hostname, sendingDomains), eq(mailboxes.disabled, false), eq(users.disabled, false)))
 		.orderBy(asc(mailboxes.createdAt))
 		.limit(50);
 	const chosen = rows.find((row) => row.role === "admin") ?? rows[0];
