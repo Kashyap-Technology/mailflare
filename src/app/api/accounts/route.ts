@@ -38,7 +38,16 @@ export async function POST(request: Request) {
 	const db = getDb(access.env);
 	const domain = await getDomainForAdmin(db, access.user!.id, input.domainId);
 	if (!domain) return NextResponse.json({ error: "Domain not found" }, { status: 404 });
-	const username = input.username.toLowerCase().trim();
+	const submittedUsername = input.username.toLowerCase().trim();
+	const atIndex = submittedUsername.lastIndexOf("@");
+	const username = atIndex === -1 ? submittedUsername : submittedUsername.slice(0, atIndex);
+	const submittedHostname = atIndex === -1 ? null : submittedUsername.slice(atIndex + 1);
+	if (!username || !/^[a-zA-Z0-9._%+-]+$/.test(username)) {
+		return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+	}
+	if (submittedHostname && submittedHostname !== domain.hostname.toLowerCase()) {
+		return NextResponse.json({ error: `Select the ${domain.hostname} domain for this address` }, { status: 400 });
+	}
 	const email = `${username}@${domain.hostname}`;
 	const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
 	if (existing) return NextResponse.json({ error: "Email already registered" }, { status: 409 });
