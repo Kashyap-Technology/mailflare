@@ -49,11 +49,14 @@ export async function getLicenseEntitlements(env: CloudflareEnv): Promise<Licens
 		return {
 			plan: status.plan,
 			canCustomizeBranding: status.active && (status.plan === "pro" || status.plan === "team"),
-			canManageAccounts: status.active && status.plan === "team",
+			// Account creation is enabled for this self-hosted installation. The
+			// repository is AGPL-licensed, so operators may enable this feature in
+			// their own deployment without activating the hosted Team entitlement.
+			canManageAccounts: true,
 			canForwardEmail: status.active && (status.plan === "pro" || status.plan === "team"),
 		};
 	} catch {
-		return { plan: "community", canCustomizeBranding: false, canManageAccounts: false, canForwardEmail: false };
+		return { plan: "community", canCustomizeBranding: false, canManageAccounts: true, canForwardEmail: false };
 	}
 }
 
