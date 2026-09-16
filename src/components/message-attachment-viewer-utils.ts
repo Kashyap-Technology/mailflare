@@ -11,9 +11,13 @@ export function getAttachmentFileUrl(
 }
 
 export function getAttachmentPreviewKind(
-	attachment: Pick<MessageAttachment, "type">,
+	attachment: Pick<MessageAttachment, "type"> & Partial<Pick<MessageAttachment, "filename">>,
 ): AttachmentPreviewKind {
 	if (attachment.type === "application/pdf") return "pdf";
+	if (
+		attachment.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+		/\.docx$/i.test(attachment.filename ?? "")
+	) return "docx";
 	if (attachment.type.startsWith("audio/")) return "audio";
 	if (attachment.type.startsWith("video/")) return "video";
 	if (attachment.type.startsWith("image/") && attachment.type !== "image/svg+xml") return "image";
