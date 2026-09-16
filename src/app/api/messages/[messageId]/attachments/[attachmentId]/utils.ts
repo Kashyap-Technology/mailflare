@@ -6,6 +6,7 @@ export function getAttachmentContentDisposition(filename: string, inline: boolea
 export function isPreviewableAttachmentType(contentType: string): boolean {
 	return (
 		contentType === "application/pdf" ||
+		contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
 		contentType.startsWith("audio/") ||
 		contentType.startsWith("video/") ||
 		(contentType.startsWith("image/") && contentType !== "image/svg+xml") ||
