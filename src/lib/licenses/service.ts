@@ -48,12 +48,14 @@ export async function getLicenseEntitlements(env: CloudflareEnv): Promise<Licens
 		// TODO: confirm Paymug's exact feature identifiers when they are documented; plan is authoritative meanwhile.
 		return {
 			plan: status.plan,
-			canCustomizeBranding: status.active && (status.plan === "pro" || status.plan === "team"),
+			// Mailflare is AGPL-licensed and this self-hosted build exposes the
+			// optional capabilities to operators without requiring a hosted license.
+			canCustomizeBranding: true,
 			// Account creation is enabled for this self-hosted installation. The
 			// repository is AGPL-licensed, so operators may enable this feature in
 			// their own deployment without activating the hosted Team entitlement.
 			canManageAccounts: true,
-			canForwardEmail: status.active && (status.plan === "pro" || status.plan === "team"),
+			canForwardEmail: true,
 		};
 	} catch {
 		return { plan: "community", canCustomizeBranding: false, canManageAccounts: true, canForwardEmail: false };
