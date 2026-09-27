@@ -84,6 +84,7 @@ const TAG_ATTRIBUTES: Record<string, Set<string>> = {
 };
 
 const ALLOWED_STYLE_PROPERTIES = new Set([
+	"background",
 	"background-color",
 	"border",
 	"border-bottom",
@@ -165,8 +166,59 @@ function sanitizeStyle(element: HTMLElement): void {
 	}
 }
 
+function getSafeStyleDeclarations(document: Document, declarations: string): string | null {
+	const probe = document.createElement("span");
+	probe.setAttribute("style", declarations);
+	sanitizeStyle(probe);
+	return probe.getAttribute("style");
+}
+
+function applyEmbeddedStyles(document: Document): void {
+	for (const styleElement of Array.from(document.querySelectorAll("style"))) {
+		const css = styleElement.textContent ?? "";
+		for (const match of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+			const selectors = match[1]
+				.split(",")
+				.map((selector) => selector.trim())
+				.filter((selector) => selector && !selector.startsWith("@"));
+			const safeDeclarations = getSafeStyleDeclarations(document, match[2]);
+			if (!safeDeclarations || selectors.length === 0) continue;
+
+			for (const selector of selectors) {
+				let elements: Element[];
+				try {
+					elements = Array.from(document.body.querySelectorAll(selector));
+				} catch {
+					continue;
+				}
+				for (const element of elements) {
+					const existing = element.getAttribute("style");
+					element.setAttribute("style", existing ? `${safeDeclarations}; ${existing}` : safeDeclarations);
+				}
+			}
+		}
+		styleElement.remove();
+	}
+}
+
+function hasButtonMarker(element: Element): boolean {
+	for (let current: Element | null = element; current; current = current.parentElement) {
+		const className = current.getAttribute("class") ?? "";
+		if (/(^|[\s_-])(button|btn|cta)(?:$|[\s_-])/i.test(className)) return true;
+		if (current.getAttribute("role")?.toLowerCase() === "button") return true;
+	}
+	return false;
+}
+
+function applyButtonFallback(element: Element): void {
+	const fallback = "display: inline-block; background-color: #2563eb; border-radius: 0.375rem; padding: 0.625rem 1rem; color: #ffffff; font-weight: 600; text-decoration: none";
+	const existing = element.getAttribute("style");
+	element.setAttribute("style", existing ? `${fallback}; ${existing}` : fallback);
+}
+
 function sanitizeElement(element: Element): void {
 	const tag = element.tagName.toLowerCase();
+	const buttonLike = tag === "a" && hasButtonMarker(element);
 	if (!ALLOWED_TAGS.has(tag)) {
 		if (DROP_CONTENT_TAGS.has(tag)) {
 			element.remove();
@@ -185,6 +237,7 @@ function sanitizeElement(element: Element): void {
 	if (element instanceof HTMLElement) sanitizeStyle(element);
 
 	if (tag === "a") {
+		if (buttonLike) applyButtonFallback(element);
 		const href = element.getAttribute("href");
 		if (!href || !isSafeLinkUrl(href)) {
 			element.removeAttribute("href");
@@ -208,6 +261,7 @@ function sanitizeElement(element: Element): void {
 export function sanitizeEmailHtml(html: string | null): string | null {
 	if (!html) return null;
 	const document = new DOMParser().parseFromString(html, "text/html");
+	applyEmbeddedStyles(document);
 	for (const element of Array.from(document.body.querySelectorAll("*"))) {
 		sanitizeElement(element);
 	}
