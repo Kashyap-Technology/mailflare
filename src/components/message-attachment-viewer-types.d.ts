@@ -10,6 +10,7 @@ export interface MessageAttachmentViewerProps {
 export type AttachmentPreviewKind =
 	| "audio"
 	| "document"
+	| "docx"
 	| "image"
 	| "pdf"
 	| "text"
