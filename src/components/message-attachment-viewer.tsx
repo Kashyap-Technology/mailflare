@@ -83,6 +83,20 @@ export function MessageAttachmentViewer({
 							className="h-full w-full border-0 bg-white"
 						/>
 					)}
+					{previewKind === "document" && (
+						<object
+							data={previewUrl}
+							title={attachment.filename}
+							className="h-full w-full border-0 bg-white"
+						>
+							<div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+								<FileWarning className="h-10 w-10 text-neutral-400" />
+								<p className="text-sm text-neutral-600">
+									Your browser may not preview this document format. Download the original file to open it in Word or another compatible app.
+								</p>
+							</div>
+						</object>
+					)}
 					{previewKind === "audio" && (
 						<audio src={previewUrl} controls className="w-[min(560px,90%)]" />
 					)}
