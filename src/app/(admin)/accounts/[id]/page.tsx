@@ -82,6 +82,19 @@ export default function AccountDetailsPage() {
 					<Input id="account-email" value={account.email} readOnly className="bg-neutral-50 text-neutral-500" />
 				</div>
 				<div className="space-y-2">
+					<Label htmlFor="account-recovery-email">Recovery email</Label>
+					<Input
+						id="account-recovery-email"
+						value={account.resetEmail ?? ""}
+						placeholder="Not configured"
+						readOnly
+						className="bg-neutral-50 text-neutral-500"
+					/>
+					<p className="text-xs leading-5 text-neutral-500">
+						Password reset links are sent to this address through Resend, not to the Mailflare mailbox.
+					</p>
+				</div>
+				<div className="space-y-2">
 					<Label htmlFor="account-name">Name</Label>
 					<Input id="account-name" value={account.name} onChange={(event) => setAccount({ ...account, name: event.target.value })} />
 				</div>

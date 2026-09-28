@@ -1,6 +1,7 @@
 export type ManagedAccount = {
 	id: string;
 	email: string;
+	resetEmail: string | null;
 	name: string;
 	role: "admin" | "user";
 	disabled: boolean;
