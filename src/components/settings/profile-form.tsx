@@ -149,7 +149,7 @@ export function ProfileForm({
             Recovery email
           </h3>
           <p className="mt-1 text-sm text-neutral-500">
-            Used to recover access if you cannot sign in.
+            Reset links are sent here, not to your Mailflare mailbox. Use an address you can access outside this account.
           </p>
         </div>
         <div className="space-y-2">

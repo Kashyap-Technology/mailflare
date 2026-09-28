@@ -65,7 +65,9 @@ The account id is the user id. Each Mailflare mailbox appears as a top-level JMA
 
 ## Password reset and two-factor authentication
 
-`POST /api/auth/password-reset/request` with `{ email }` always answers `200 { ok: true }`; when the account exists and has a recovery email, a single-use link valid for 30 minutes is mailed there. `POST /api/auth/password-reset/confirm` with `{ token, password }` sets the password and signs the account out everywhere.
+`POST /api/auth/password-reset/request` with `{ email }` always answers `200 { ok: true }`; when the account exists and has a recovery email, a single-use link valid for 30 minutes is mailed to the recovery email saved under Settings → Account (not to the Mailflare mailbox). The message is sent through Resend using the first enabled mailbox on a configured sending domain. `POST /api/auth/password-reset/confirm` with `{ token, password }` sets the password and signs the account out everywhere.
+
+If the recovery inbox is unavailable, a workspace administrator can reset the account password from Admin → Accounts. A signed-in user can change their password under Settings → Account. MFA recovery codes only replace the authenticator code during sign-in; they do not replace the password.
 
 When two-factor authentication is on, `POST /api/auth/login` returns `{ ok: true, mfaRequired: true, challengeToken }` instead of a session. `POST /api/auth/mfa/verify` with `{ challengeToken, code }` completes the sign-in; `code` is a 6-digit TOTP or one of the recovery codes. Challenges expire after 5 minutes. Enrolment, recovery codes and turning it off are under `/api/settings/mfa/*` (session auth) and always re-check the password.
 

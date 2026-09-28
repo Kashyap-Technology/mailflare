@@ -5,7 +5,7 @@ import { newId } from "@/lib/ids";
 import { hashPassword } from "@/lib/auth/password";
 import { deleteUserSessions, hashSessionToken } from "@/lib/auth/session";
 import { getBranding } from "@/lib/branding/service";
-import { sendSystemEmail } from "@/lib/email/system-mail";
+import { pickSystemSender, sendSystemEmail } from "@/lib/email/system-mail";
 import { createAuditLog } from "@/lib/mailboxes/audit";
 import { escapeHtml } from "@/lib/auth/password-reset-utils";
 
@@ -20,6 +20,10 @@ export async function requestPasswordReset(env: CloudflareEnv, email: string, or
 	const db = getDb(env);
 	const [user] = await db.select().from(users).where(eq(users.email, email.trim().toLowerCase())).limit(1);
 	if (!user || user.disabled || !user.resetEmail) return;
+	if (!await pickSystemSender(env)) {
+		console.warn("Password reset requested but system email is not configured; no link created");
+		return;
+	}
 
 	const token = newId("prt");
 	await db.insert(passwordResetTokens).values({

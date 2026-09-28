@@ -324,7 +324,9 @@ export function RegisterClient() {
               placeholder="you@gmail.com"
               required
             />
-            {/* <p className="text-xs leading-5 text-neutral-500">Used later for password reset.</p> */}
+            <p className="text-xs leading-5 text-neutral-500">
+              Password reset links will be sent here. Use an inbox you can access outside Mailflare.
+            </p>
           </div>
 
           {error && (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { KeyRound } from "lucide-react";
+import { Info, KeyRound } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { TurnstileField } from "@/components/auth/turnstile";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,21 @@ export function ForgotPasswordClient() {
 				</Link>
 			}
 		>
-			{!sent && (
+			{sent ? (
+				<div className="space-y-4">
+					<div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-900">
+						<Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+						<div className="space-y-1 leading-6">
+							<p className="font-medium">Check your recovery inbox</p>
+							<p>The link is sent to the Recovery email saved under Settings → Account, not to your Mailflare mailbox. Check spam or junk too.</p>
+							<p>If nothing arrives after a few minutes, ask an administrator to check the Resend sending setup.</p>
+						</div>
+					</div>
+					<p className="text-sm leading-6 text-neutral-500">
+						Can&apos;t access that email? Ask a workspace administrator to reset your password from Admin → Accounts.
+					</p>
+				</div>
+			) : (
 				<form onSubmit={onSubmit} className="space-y-5">
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
