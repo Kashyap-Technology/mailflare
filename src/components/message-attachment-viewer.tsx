@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { authFetch } from "@/lib/auth/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { sanitizeEmailHtml } from "@/app/(dashboard)/inbox/[messageId]/email-html-sanitizer";
 import type { MessageAttachmentViewerProps } from "./message-attachment-viewer-types";
 import {
 	getAttachmentFileUrl,
@@ -25,7 +26,9 @@ export function MessageAttachmentViewer({
 	open,
 }: MessageAttachmentViewerProps) {
 	const [textContent, setTextContent] = useState("");
-	const [textError, setTextError] = useState("");
+	const [documentHtml, setDocumentHtml] = useState("");
+	const [previewError, setPreviewError] = useState("");
+	const [previewLoading, setPreviewLoading] = useState(false);
 
 	const previewKind = attachment ? getAttachmentPreviewKind(attachment) : "unsupported";
 	const previewUrl = attachment
@@ -36,22 +39,47 @@ export function MessageAttachmentViewer({
 		: "";
 
 	useEffect(() => {
-		if (!open || !attachment || previewKind !== "text") return;
+		if (!open || !attachment || (previewKind !== "text" && previewKind !== "document")) return;
+		const currentAttachment = attachment;
 		let cancelled = false;
 		setTextContent("");
-		setTextError("");
+		setDocumentHtml("");
+		setPreviewError("");
+		setPreviewLoading(true);
 
-		authFetch(previewUrl)
-			.then(async (response) => {
+		async function loadPreview() {
+			try {
+				const response = await authFetch(previewUrl);
 				if (!response.ok) throw new Error("Could not load this attachment");
-				const content = await response.text();
-				if (!cancelled) setTextContent(content);
-			})
-			.catch((error) => {
-				if (!cancelled) {
-					setTextError(error instanceof Error ? error.message : "Could not load this attachment");
+
+				if (previewKind === "text") {
+					const content = await response.text();
+					if (!cancelled) setTextContent(content);
+					return;
 				}
-			});
+
+				const isDocx = currentAttachment.filename.toLowerCase().endsWith(".docx") || currentAttachment.type.toLowerCase().includes("wordprocessingml");
+				if (!isDocx) {
+					throw new Error("This document format cannot be displayed in the browser. Download it to open it in Word or another compatible app.");
+				}
+
+				const arrayBuffer = await response.arrayBuffer();
+				const mammothModule = await import("mammoth");
+				const mammoth = mammothModule.default ?? mammothModule;
+				const result = await mammoth.convertToHtml({ arrayBuffer });
+				const safeHtml = sanitizeEmailHtml(result.value);
+				if (!safeHtml) throw new Error("This document did not contain displayable text.");
+				if (!cancelled) setDocumentHtml(safeHtml);
+			} catch (error) {
+				if (!cancelled) {
+					setPreviewError(error instanceof Error ? error.message : "Could not load this attachment");
+				}
+			} finally {
+				if (!cancelled) setPreviewLoading(false);
+			}
+		}
+
+		void loadPreview();
 
 		return () => {
 			cancelled = true;
@@ -80,22 +108,30 @@ export function MessageAttachmentViewer({
 						<iframe
 							src={previewUrl}
 							title={attachment.filename}
-							className="h-full w-full border-0 bg-white"
+							className="h-full min-h-[60vh] w-full border-0 bg-white"
 						/>
 					)}
 					{previewKind === "document" && (
-						<object
-							data={previewUrl}
-							title={attachment.filename}
-							className="h-full w-full border-0 bg-white"
-						>
+						previewLoading ? (
+							<div className="w-full space-y-4 bg-white p-8">
+								<Skeleton className="h-8 w-2/5" />
+								<Skeleton className="h-4 w-full" />
+								<Skeleton className="h-4 w-11/12" />
+								<Skeleton className="h-4 w-4/5" />
+							</div>
+						) : documentHtml ? (
+							<article
+								className="email-body email-document-preview h-full w-full overflow-auto bg-white p-8 text-neutral-900 shadow-sm"
+								dangerouslySetInnerHTML={{ __html: documentHtml }}
+							/>
+						) : (
 							<div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
 								<FileWarning className="h-10 w-10 text-neutral-400" />
-								<p className="text-sm text-neutral-600">
-									Your browser may not preview this document format. Download the original file to open it in Word or another compatible app.
+								<p className="max-w-md text-sm text-neutral-600">
+									{previewError || "This document could not be displayed."}
 								</p>
 							</div>
-						</object>
+						)
 					)}
 					{previewKind === "audio" && (
 						<audio src={previewUrl} controls className="w-[min(560px,90%)]" />
@@ -104,17 +140,17 @@ export function MessageAttachmentViewer({
 						<video src={previewUrl} controls className="max-h-full max-w-full" />
 					)}
 					{previewKind === "text" && (
-						textError || textContent ? (
-							<pre className="h-full w-full overflow-auto whitespace-pre-wrap p-5 text-sm text-neutral-800">
-								{textError || textContent}
-							</pre>
-						) : (
+						previewLoading ? (
 							<div className="h-full w-full space-y-3 bg-white p-5">
 								<Skeleton className="h-4 w-full" />
 								<Skeleton className="h-4 w-11/12" />
 								<Skeleton className="h-4 w-4/5" />
 							</div>
-						)
+							) : (previewError || textContent) ? (
+							<pre className="h-full w-full overflow-auto whitespace-pre-wrap p-5 text-sm text-neutral-800">
+								{previewError || textContent}
+							</pre>
+						) : null
 					)}
 					{previewKind === "unsupported" && (
 						<div className="flex flex-col items-center gap-3 px-6 text-center">

@@ -27,19 +27,26 @@ export async function GET(request: Request, { params }: AttachmentRouteParams) {
 			(previewRequested && isPreviewableAttachmentType(attachment.contentType, attachment.filename)));
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);
+	const previewContentType = getAttachmentPreviewContentType(attachment.contentType, attachment.filename);
 	headers.set(
 		"Content-Type",
 		previewRequested
-			? getAttachmentPreviewContentType(attachment.contentType, attachment.filename)
+			? previewContentType
 			: attachment.contentType,
 	);
 	headers.set("Content-Length", String(attachment.size));
 	headers.set("Content-Disposition", getAttachmentContentDisposition(attachment.filename, inline));
 	headers.set("X-Content-Type-Options", "nosniff");
-	headers.set(
-		"Content-Security-Policy",
-		"default-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'unsafe-inline'; sandbox",
-	);
+	// Chromium's built-in PDF viewer is rendered inside this response. A response-level
+	// sandbox prevents the viewer from painting and produces a blank iframe.
+	if (previewContentType === "application/pdf") {
+		headers.set("Content-Security-Policy", "frame-ancestors 'self'");
+	} else {
+		headers.set(
+			"Content-Security-Policy",
+			"default-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'unsafe-inline'; sandbox",
+		);
+	}
 	headers.set("Cache-Control", "private, max-age=3600");
 
 	return new Response(object.body, { headers });

@@ -116,3 +116,35 @@ pre {
 .email-body p {
 	margin: 0 0 0.5rem;
 }
+.email-document-preview h1,
+.email-document-preview h2,
+.email-document-preview h3,
+.email-document-preview h4 {
+	font-weight: 600;
+	line-height: 1.25;
+	margin: 1rem 0 0.5rem;
+}
+.email-document-preview h1 {
+	font-size: 1.75rem;
+}
+.email-document-preview h2 {
+	font-size: 1.35rem;
+}
+.email-document-preview h3,
+.email-document-preview h4 {
+	font-size: 1.1rem;
+}
+.email-document-preview table {
+	border-collapse: collapse;
+	max-width: 100%;
+}
+.email-document-preview th,
+.email-document-preview td {
+	border: 1px solid #e5e5e5;
+	padding: 0.5rem 0.75rem;
+	vertical-align: top;
+}
+.email-document-preview img {
+	max-width: 100%;
+	height: auto;
+}
