@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowDownToLine, FileWarning } from "lucide-react";
+import mammoth from "mammoth";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -26,6 +27,8 @@ export function MessageAttachmentViewer({
 }: MessageAttachmentViewerProps) {
 	const [textContent, setTextContent] = useState("");
 	const [textError, setTextError] = useState("");
+	const [docxHtml, setDocxHtml] = useState("");
+	const [docxError, setDocxError] = useState("");
 
 	const previewKind = attachment ? getAttachmentPreviewKind(attachment) : "unsupported";
 	const previewUrl = attachment
@@ -36,27 +39,39 @@ export function MessageAttachmentViewer({
 		: "";
 
 	useEffect(() => {
-		if (!open || !attachment || previewKind !== "text") return;
+		if (!open || !attachment || !["text", "docx"].includes(previewKind)) return;
 		let cancelled = false;
 		setTextContent("");
 		setTextError("");
+		setDocxHtml("");
+		setDocxError("");
 
 		authFetch(previewUrl)
 			.then(async (response) => {
 				if (!response.ok) throw new Error("Could not load this attachment");
+				if (previewKind === "docx") {
+					const result = await mammoth.convertToHtml(
+						{ arrayBuffer: await response.arrayBuffer() },
+						{ convertImage: mammoth.images.dataUri, externalFileAccess: false },
+					);
+					if (!cancelled) setDocxHtml(result.value);
+					return;
+				}
 				const content = await response.text();
 				if (!cancelled) setTextContent(content);
 			})
 			.catch((error) => {
 				if (!cancelled) {
-					setTextError(error instanceof Error ? error.message : "Could not load this attachment");
+					const message = error instanceof Error ? error.message : "Could not load this attachment";
+					if (previewKind === "docx") setDocxError(message);
+					else setTextError(message);
 				}
 			});
 
 		return () => {
 			cancelled = true;
 		};
-	}, [attachment, open, previewKind, previewUrl]);
+		}, [attachment, open, previewKind, previewUrl]);
 
 	if (!attachment) return null;
 
