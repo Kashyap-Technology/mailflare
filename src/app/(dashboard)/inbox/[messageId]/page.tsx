@@ -34,6 +34,7 @@ import {
 } from "./utils";
 import { extractCloudAttachments } from "./cloud-attachment-utils";
 import { sanitizeEmailHtml } from "./email-html-sanitizer";
+import { textToHtmlWithLinks } from "@/components/compose/rich-text-utils";
 
 export default function MessageDetailPage() {
   const params = useParams<{ messageId: string }>();
@@ -134,6 +135,7 @@ export default function MessageDetailPage() {
   const cloudAttachmentResult = extractCloudAttachments(
     bodyDisplay.latestContent,
   );
+  const textBodyHtml = sanitizeEmailHtml(textToHtmlWithLinks(cloudAttachmentResult.content));
   return (
     <div className="h-full overflow-y-auto overscroll-contain scrollbar-gutter-stable">
       {!message.read && <MarkAsRead messageId={message.id} />}
@@ -254,9 +256,10 @@ export default function MessageDetailPage() {
           {htmlBody ? (
             <div className="email-body mx-auto" dangerouslySetInnerHTML={{ __html: htmlBody }} />
           ) : (
-            <pre className="whitespace-pre-wrap text-sm text mx-auto">
-              {cloudAttachmentResult.content}
-            </pre>
+            <div
+              className="email-body mx-auto text-sm"
+              dangerouslySetInnerHTML={{ __html: textBodyHtml ?? "" }}
+            />
           )}
           {quotedHtml && (
             <details className="group mt-4 border-l-2 border-neutral-200 pl-4">

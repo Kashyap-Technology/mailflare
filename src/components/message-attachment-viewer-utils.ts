@@ -19,16 +19,15 @@ export function getAttachmentPreviewKind(
 	if (type.startsWith("audio/")) return "audio";
 	if (type.startsWith("video/")) return "video";
 	if (type.startsWith("image/") && type !== "image/svg+xml") return "image";
-	attachment: Pick<MessageAttachment, "type"> & Partial<Pick<MessageAttachment, "filename">>,
-): AttachmentPreviewKind {
-	if (attachment.type === "application/pdf") return "pdf";
 	if (
-		attachment.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-		/\.docx$/i.test(attachment.filename ?? "")
-	) return "docx";
-	if (attachment.type.startsWith("audio/")) return "audio";
-	if (attachment.type.startsWith("video/")) return "video";
-	if (attachment.type.startsWith("image/") && attachment.type !== "image/svg+xml") return "image";
+		type.includes("msword") ||
+		type.includes("wordprocessingml") ||
+		type.includes("opendocument.text") ||
+		type === "application/rtf" ||
+		/\.(doc|docx|odt|rtf)$/.test(filename)
+	) {
+		return "document";
+	}
 	if (
 		type.includes("msword") ||
 		type.includes("wordprocessingml") ||

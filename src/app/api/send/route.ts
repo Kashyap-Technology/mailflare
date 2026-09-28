@@ -3,13 +3,17 @@ import { getEnv } from "@/lib/cloudflare";
 import { requireUser } from "@/lib/auth/cookies";
 import { sendEmailSchema } from "@/lib/validators";
 import { sendEmail } from "@/lib/email/send";
-import { parseSendRequest } from "./utils";
+import { parseSendRequest, TooManyAttachmentsError } from "./utils";
 import { RequestBodyTooLargeError } from "@/lib/http/errors";
 import { getSendErrorStatus } from "./error-utils";
 import { getDb } from "@/db";
 import { messages } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { loadMessageAttachmentContents } from "@/lib/email/attachments";
+import { MAX_ATTACHMENT_COUNT } from "@/lib/email/attachment-limits";
+import {
+	loadMessageAttachmentContents,
+	listMessageAttachments,
+} from "@/lib/email/attachments";
 import { userOwnsDraft } from "@/app/api/drafts/utils";
 
 export async function POST(request: Request) {
@@ -19,6 +23,9 @@ export async function POST(request: Request) {
 	try {
 		input = await parseSendRequest(request);
 	} catch (error) {
+		if (error instanceof TooManyAttachmentsError) {
+			return NextResponse.json({ error: error.message }, { status: 400 });
+		}
 		const status = error instanceof RequestBodyTooLargeError ? 413 : 400;
 		return NextResponse.json({ error: "Invalid send request" }, { status });
 	}
@@ -35,6 +42,13 @@ export async function POST(request: Request) {
 		const [draft] = await db.select().from(messages).where(eq(messages.id, draftId)).limit(1);
 		if (!userOwnsDraft(draft, user.id)) {
 			return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+		}
+		const storedAttachmentMetadata = await listMessageAttachments(env, draftId);
+		if (attachments.length + storedAttachmentMetadata.length > MAX_ATTACHMENT_COUNT) {
+			return NextResponse.json(
+				{ error: `A message can include at most ${MAX_ATTACHMENT_COUNT} attachments` },
+				{ status: 400 },
+			);
 		}
 		attachments.push(...(await loadMessageAttachmentContents(env, draftId)));
 	}

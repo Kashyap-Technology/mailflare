@@ -9,10 +9,11 @@ import type {
 	AttachmentMetadata,
 	StoredAttachment,
 } from "./attachment-types";
-
-export const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
-export const MAX_TOTAL_ATTACHMENT_SIZE = 20 * 1024 * 1024;
-export const MAX_ATTACHMENT_COUNT = 10;
+import {
+	MAX_ATTACHMENT_COUNT,
+	MAX_ATTACHMENT_SIZE,
+	MAX_TOTAL_ATTACHMENT_SIZE,
+} from "./attachment-limits";
 
 export function decodeBase64Content(content: string): ArrayBuffer {
 	const binary = atob(content.replace(/\s/g, ""));

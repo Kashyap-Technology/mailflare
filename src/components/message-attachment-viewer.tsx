@@ -111,23 +111,6 @@ export function MessageAttachmentViewer({
 								</p>
 							</div>
 						</object>
-					{previewKind === "docx" && (
-						docxError ? (
-							<div className="px-6 text-center text-sm text-neutral-600">{docxError}</div>
-						) : docxHtml ? (
-							<iframe
-								srcDoc={`<!doctype html><html><head><meta name="color-scheme" content="light"><style>body{font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.6;color:#262626;max-width:780px;margin:0 auto;padding:32px}img{max-width:100%;height:auto}table{border-collapse:collapse;max-width:100%}td,th{border:1px solid #d4d4d4;padding:6px 10px}a{color:#2563eb}</style></head><body>${docxHtml}</body></html>`}
-								title={attachment.filename}
-								className="h-full w-full border-0 bg-white"
-								sandbox=""
-							/>
-						) : (
-							<div className="h-full w-full space-y-3 bg-white p-5">
-								<Skeleton className="h-4 w-full" />
-								<Skeleton className="h-4 w-11/12" />
-								<Skeleton className="h-4 w-4/5" />
-							</div>
-						)
 					)}
 					{previewKind === "audio" && (
 						<audio src={previewUrl} controls className="w-[min(560px,90%)]" />

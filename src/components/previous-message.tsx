@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import { textToHtmlWithLinks } from "@/components/compose/rich-text-utils";
 import type { PreviousMessageProps } from "./previous-message-types";
 
 export function PreviousMessage({ message }: PreviousMessageProps) {
@@ -12,9 +13,10 @@ export function PreviousMessage({ message }: PreviousMessageProps) {
 			</summary>
 			<div className="pb-2 pl-5 text-neutral-600">
 				{message.content && (
-					<pre className="whitespace-pre-wrap text-sm font-sans">
-						{message.content}
-					</pre>
+					<div
+						className="email-body text-sm font-sans"
+						dangerouslySetInnerHTML={{ __html: textToHtmlWithLinks(message.content) }}
+					/>
 				)}
 				{message.quotedContent.map((nestedMessage, index) => (
 					<PreviousMessage
