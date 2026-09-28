@@ -43,5 +43,14 @@ function isDocumentAttachment(contentType: string, filename: string): boolean {
 		contentType.includes("opendocument.text") ||
 		contentType === "application/rtf" ||
 		/\.(doc|docx|odt|rtf)$/.test(filename)
+		contentType === "application/pdf" ||
+		contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+		contentType.startsWith("audio/") ||
+		contentType.startsWith("video/") ||
+		(contentType.startsWith("image/") && contentType !== "image/svg+xml") ||
+		contentType.startsWith("text/plain") ||
+		contentType === "application/json" ||
+		contentType === "application/xml" ||
+		contentType === "text/csv"
 	);
 }

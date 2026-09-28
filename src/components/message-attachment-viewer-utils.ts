@@ -29,6 +29,15 @@ export function getAttachmentPreviewKind(
 		return "document";
 	}
 	if (
+		type.includes("msword") ||
+		type.includes("wordprocessingml") ||
+		type.includes("opendocument.text") ||
+		type === "application/rtf" ||
+		/\.(doc|docx|odt|rtf)$/.test(filename)
+	) {
+		return "document";
+	}
+	if (
 		type.startsWith("text/plain") ||
 		type === "application/json" ||
 		type === "application/xml" ||
