@@ -7,6 +7,7 @@ import { ContactAvatar } from "@/components/contacts/contact-avatar";
 import { runSingleMessageAction } from "@/components/message-actions/utils";
 import { sanitizeEmailHtml } from "@/app/(dashboard)/inbox/[messageId]/email-html-sanitizer";
 import { getMessageBodyDisplay, resolveInlineAttachmentUrls } from "@/app/(dashboard)/inbox/[messageId]/utils";
+import { textToHtmlWithLinks } from "@/components/compose/rich-text-utils";
 
 import { cn } from "@/lib/utils";
 import type { ConversationMessageCardProps, ConversationThreadProps } from "./conversation-thread-types";
@@ -182,7 +183,10 @@ export function ConversationMessageCard({
 					{body.html ? (
 						<div className="email-body max-w-none text-sm text-neutral-900" dangerouslySetInnerHTML={{ __html: body.html }} />
 					) : (
-						<pre className="whitespace-pre-wrap font-sans text-sm text-neutral-900">{body.text}</pre>
+						<div
+							className="email-body max-w-none text-sm text-neutral-900"
+							dangerouslySetInnerHTML={{ __html: textToHtmlWithLinks(body.text) }}
+						/>
 					)}
 					{attachments.length > 0 && (
 						<ul className="mt-4 flex flex-wrap gap-2">

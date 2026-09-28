@@ -16,6 +16,45 @@ export function escapeHtml(value: string): string {
 		.replace(/"/g, "&quot;");
 }
 
+const MARKDOWN_LINK_PATTERN = /\[([^\]\r\n]+)\]\((https?:\/\/[^\s)]+)\)/g;
+const URL_PATTERN = /https?:\/\/[^\s<]+/g;
+
+function renderLinkedText(value: string): string {
+	let html = "";
+	let cursor = 0;
+	const appendTextWithUrls = (text: string): void => {
+		let urlCursor = 0;
+		for (const match of text.matchAll(URL_PATTERN)) {
+			const url = match[0];
+			const index = match.index ?? 0;
+			const trimmedUrl = url.replace(/[.,!?;:]+$/, "");
+			html += escapeHtml(text.slice(urlCursor, index));
+			html += `<a href="${escapeHtml(trimmedUrl)}">${escapeHtml(trimmedUrl)}</a>`;
+			html += escapeHtml(url.slice(trimmedUrl.length));
+			urlCursor = index + url.length;
+		}
+		html += escapeHtml(text.slice(urlCursor));
+	};
+
+	for (const match of value.matchAll(MARKDOWN_LINK_PATTERN)) {
+		const label = match[1];
+		const href = match[2];
+		const index = match.index ?? 0;
+		appendTextWithUrls(value.slice(cursor, index));
+		html += `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+		cursor = index + match[0].length;
+	}
+	appendTextWithUrls(value.slice(cursor));
+	return html;
+}
+
+/** Plain text as safe HTML with HTTP(S) URLs rendered as clickable links. */
+export function textToHtmlWithLinks(text: string | null | undefined): string {
+	const value = (text ?? "").replace(/\r\n?/g, "\n");
+	if (!value) return "";
+	return `<div>${value.split("\n").map(renderLinkedText).join("<br>")}</div>`;
+}
+
 /** Plain text as HTML: escaped, with line breaks preserved. */
 export function textToHtml(text: string | null | undefined): string {
 	const value = (text ?? "").replace(/\r\n?/g, "\n");
