@@ -11,6 +11,11 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { authFetch } from "@/lib/auth/client";
 import { formatEmailAddress, getEmailAddress } from "@/lib/email/address";
+import {
+	MAX_ATTACHMENT_COUNT,
+	MAX_ATTACHMENT_SIZE,
+	MAX_TOTAL_ATTACHMENT_SIZE,
+} from "@/lib/email/attachment-limits";
 import { cn } from "@/lib/utils";
 import { buildSendFormData, fetchDraft, formatAttachmentSize } from "./utils";
 import { RecipientInput } from "./recipient-input";
@@ -89,6 +94,8 @@ export function ComposeForm({
 	const fromAddr = selectedMailbox && selectedFrom
 		? formatEmailAddress(selectedFrom, selectedMailbox.displayName)
 		: "";
+	const attachmentCount = storedAttachments.length + attachments.length;
+	const attachmentLimitReached = attachmentCount >= MAX_ATTACHMENT_COUNT;
 
 	useEffect(() => {
 		if (!senderAddresses.length) {
@@ -217,6 +224,10 @@ export function ComposeForm({
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+		if (attachmentCount > MAX_ATTACHMENT_COUNT) {
+			setToast({ type: "error", message: `A message can include at most ${MAX_ATTACHMENT_COUNT} attachments` });
+			return;
+		}
 		if (to.length === 0) {
 			setToast({ type: "error", message: "Add at least one recipient" });
 			return;
@@ -328,8 +339,25 @@ export function ComposeForm({
 
 	function addAttachments(files: FileList | null) {
 		if (!files) return;
+		const currentCount = storedAttachments.length + attachments.length;
+		const nextCount = currentCount + files.length;
+
+		// Check the cheap count first. This avoids copying a large FileList into
+		// React state when the selection can never be accepted.
+		if (nextCount > MAX_ATTACHMENT_COUNT) {
+			if (attachmentInput.current) attachmentInput.current.value = "";
+			const remaining = Math.max(0, MAX_ATTACHMENT_COUNT - currentCount);
+			setToast({
+				type: "error",
+				message: remaining > 0
+					? `You can add ${remaining} more attachment${remaining === 1 ? "" : "s"}`
+					: `A message can include at most ${MAX_ATTACHMENT_COUNT} attachments`,
+			});
+			return;
+		}
+
 		const nextFiles = Array.from(files);
-		const nextCount = storedAttachments.length + attachments.length + nextFiles.length;
+		if (attachmentInput.current) attachmentInput.current.value = "";
 		const totalSize =
 			storedAttachments.reduce((total, item) => total + item.size, 0) +
 			[...attachments.map((attachment) => attachment.file), ...nextFiles].reduce(
@@ -337,15 +365,11 @@ export function ComposeForm({
 				0,
 			);
 
-		if (nextCount > 10) {
-			setToast({ type: "error", message: "A message can include at most 10 attachments" });
-			return;
-		}
-		if (nextFiles.some((file) => file.size > 10 * 1024 * 1024)) {
+		if (nextFiles.some((file) => file.size > MAX_ATTACHMENT_SIZE)) {
 			setToast({ type: "error", message: "Each attachment must be 10 MB or smaller" });
 			return;
 		}
-		if (totalSize > 20 * 1024 * 1024) {
+		if (totalSize > MAX_TOTAL_ATTACHMENT_SIZE) {
 			setToast({ type: "error", message: "Attachments must total 20 MB or less" });
 			return;
 		}
@@ -517,12 +541,13 @@ export function ComposeForm({
 								className="hidden"
 								onChange={(event) => addAttachments(event.target.files)}
 							/>
-							<Tooltip label="Attach files">
+							<Tooltip label={attachmentLimitReached ? `Maximum of ${MAX_ATTACHMENT_COUNT} attachments reached` : "Attach files"}>
 								<button
 									type="button"
-									aria-label="Attach files"
+									aria-label={attachmentLimitReached ? `Maximum of ${MAX_ATTACHMENT_COUNT} attachments reached` : "Attach files"}
+									title={attachmentLimitReached ? `Maximum of ${MAX_ATTACHMENT_COUNT} attachments reached` : undefined}
 									onClick={() => attachmentInput.current?.click()}
-									disabled={loading || loadingDraft}
+									disabled={loading || loadingDraft || attachmentLimitReached}
 									className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:pointer-events-none disabled:opacity-50"
 								>
 									<Paperclip className="h-4 w-4" />
@@ -543,8 +568,12 @@ export function ComposeForm({
 						</>
 					}
 				/>
-				{(attachments.length > 0 || storedAttachments.length > 0) && (
+				{attachmentCount > 0 && (
 					<div className="flex flex-wrap gap-2 border-t border-neutral-100 px-4 py-3">
+						<span className={cn("basis-full text-xs", attachmentCount > MAX_ATTACHMENT_COUNT ? "text-red-600" : "text-neutral-400")}>
+							{attachmentCount}/{MAX_ATTACHMENT_COUNT} attachments
+							{attachmentCount > MAX_ATTACHMENT_COUNT && " — remove attachments before sending"}
+						</span>
 						{storedAttachments.map((attachment) => (
 							<div
 								key={attachment.id}

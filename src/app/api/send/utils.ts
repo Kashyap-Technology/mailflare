@@ -1,4 +1,5 @@
 import type { AttachmentContent } from "@/lib/email/attachment-types";
+import { MAX_ATTACHMENT_COUNT } from "@/lib/email/attachment-limits";
 import { readFormDataBody, readJsonBody } from "@/lib/http/request";
 import type { SendRequestPayload } from "./types";
 
@@ -9,6 +10,13 @@ function getOptionalFormValue(form: FormData, key: string): string | undefined {
 	return typeof value === "string" && value ? value : undefined;
 }
 
+export class TooManyAttachmentsError extends Error {
+	constructor() {
+		super(`A message can include at most ${MAX_ATTACHMENT_COUNT} attachments`);
+		this.name = "TooManyAttachmentsError";
+	}
+}
+
 export async function parseSendRequest(request: Request): Promise<SendRequestPayload> {
 	if (!request.headers.get("content-type")?.includes("multipart/form-data")) {
 		return readJsonBody<SendRequestPayload>(request, MAX_SEND_REQUEST_SIZE);
@@ -16,8 +24,10 @@ export async function parseSendRequest(request: Request): Promise<SendRequestPay
 
 	const form = await readFormDataBody(request, MAX_SEND_REQUEST_SIZE);
 	const attachments: AttachmentContent[] = [];
-	for (const value of form.getAll("attachments")) {
-		if (!(value instanceof File) || value.size === 0) continue;
+	const fileValues = form.getAll("attachments").filter((value): value is File => value instanceof File);
+	if (fileValues.length > MAX_ATTACHMENT_COUNT) throw new TooManyAttachmentsError();
+	for (const value of fileValues) {
+		if (value.size === 0) continue;
 		attachments.push({
 			filename: value.name,
 			type: value.type || "application/octet-stream",

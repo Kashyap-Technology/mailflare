@@ -7,7 +7,11 @@ import { requireUser } from "@/lib/auth/cookies";
 import { newId } from "@/lib/ids";
 import { buildSnippet } from "@/lib/email/parse";
 import { readJsonBody } from "@/lib/http/request";
-import { copyMessageAttachments } from "@/lib/email/attachments";
+import {
+	copyMessageAttachments,
+	listMessageAttachments,
+} from "@/lib/email/attachments";
+import { MAX_ATTACHMENT_COUNT } from "@/lib/email/attachment-limits";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import { RequestBodyTooLargeError } from "@/lib/http/errors";
 import type { DraftPayload } from "./types";
@@ -62,6 +66,13 @@ export async function POST(request: Request) {
 		const sourceAccess = source?.mailboxId ? await getMailboxAccessLevel(db, user, source.mailboxId) : null;
 		if (!source || !sourceAccess?.canRead) {
 			return NextResponse.json({ error: "Message not found" }, { status: 404 });
+		}
+		const sourceAttachments = await listMessageAttachments(env, source.id);
+		if (sourceAttachments.length > MAX_ATTACHMENT_COUNT) {
+			return NextResponse.json(
+				{ error: `This message has more than ${MAX_ATTACHMENT_COUNT} attachments and cannot be forwarded` },
+				{ status: 400 },
+			);
 		}
 		forwardSourceId = source.id;
 	}

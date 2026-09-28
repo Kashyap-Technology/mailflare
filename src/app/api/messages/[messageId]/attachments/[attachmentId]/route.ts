@@ -3,6 +3,7 @@ import { getEnv } from "@/lib/cloudflare";
 import { getAttachmentForUser } from "@/lib/email/attachments";
 import type { AttachmentRouteParams } from "./types";
 import {
+	getAttachmentPreviewContentType,
 	getAttachmentContentDisposition,
 	isPreviewableAttachmentType,
 } from "./utils";
@@ -23,10 +24,15 @@ export async function GET(request: Request, { params }: AttachmentRouteParams) {
 	const inline =
 		!downloadRequested &&
 		(attachment.disposition === "inline" ||
-			(previewRequested && isPreviewableAttachmentType(attachment.contentType)));
+			(previewRequested && isPreviewableAttachmentType(attachment.contentType, attachment.filename)));
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);
-	headers.set("Content-Type", attachment.contentType);
+	headers.set(
+		"Content-Type",
+		previewRequested
+			? getAttachmentPreviewContentType(attachment.contentType, attachment.filename)
+			: attachment.contentType,
+	);
 	headers.set("Content-Length", String(attachment.size));
 	headers.set("Content-Disposition", getAttachmentContentDisposition(attachment.filename, inline));
 	headers.set("X-Content-Type-Options", "nosniff");

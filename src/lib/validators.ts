@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getEmailAddress, splitEmailAddressList } from "@/lib/email/address";
+import { MAX_ATTACHMENT_COUNT } from "@/lib/email/attachment-limits";
 import { DEFAULT_FOLDER_COLOR, FOLDER_COLOR_VALUES } from "@/lib/folders/colors";
 
 /**
@@ -38,7 +39,7 @@ export const sendEmailSchema = z.object({
 					contentBase64: z.string().min(1).max(14 * 1024 * 1024),
 			}),
 		)
-		.max(10)
+		.max(MAX_ATTACHMENT_COUNT)
 		.optional(),
 });
 
